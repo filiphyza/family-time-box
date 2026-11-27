@@ -1,0 +1,35 @@
+Local face recognition third-party notices
+
+SFace model: face_recognition_sface_2021dec.onnx
+Copyright and license: Apache License 2.0; see face_recognition_sface-LICENSE.txt.
+Contributed to OpenCV Zoo by Yaoyao Zhong; ONNX conversion by Chengrui Wang.
+
+YuNet model: face_detection_yunet_2023mar.onnx
+Copyright (c) 2020 Shiqi Yu <shiqi.yu@gmail.com>
+MIT License; see face_detection_yunet-LICENSE.txt.
+
+Both model files are unmodified from OpenCV Zoo revision
+48b10fa505aeb51fbd127fc60a5c660040e823b7.
+https://github.com/opencv/opencv_zoo
+
+ONNX Runtime Web 1.31.1
+Copyright (c) Microsoft Corporation. All rights reserved.
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

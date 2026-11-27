@@ -1,0 +1,24 @@
+/* Family Time Box typography. App colors, spacing and components are retained. */
+:root{--ftb-display:Georgia,'Times New Roman',serif;--ftb-ui:Arial,Helvetica,sans-serif}
+body,#root,#root .font-sans{font-family:var(--ftb-ui)!important}
+#root :is(button,input,select,textarea,option){font-family:var(--ftb-ui)}
+#root .font-serif{font-family:var(--ftb-display)!important}
+/* Titles share the wordmark's quiet, expressive serif. */
+#root main h1,#root .ft-heading h1,#root .ft-subheader h1{font-family:var(--ftb-display)!important;font-size:24px;font-style:italic;font-weight:400;line-height:1.12;letter-spacing:-.85px}
+#root h2{font-family:var(--ftb-display);font-style:italic;font-weight:400;line-height:1.2;letter-spacing:-.45px}
+#root [role="dialog"] h2,#root .ft-dialog h2,#root .ft-empty h2,#root .fixed>div>div>h2{font-family:var(--ftb-display)!important;font-size:26px;font-style:italic;font-weight:400;line-height:1.2;letter-spacing:-.55px}
+/* Settings uses the same title treatment without changing its modal geometry. */
+#root .fixed h2{font-family:var(--ftb-display)!important;font-size:26px;font-style:italic;font-weight:400;line-height:1.2;letter-spacing:-.55px}
+/* Tree names use the clear UI sans, with fixed tree-card geometry intact. */
+#root .ft-node strong{font-family:var(--ftb-ui);font-size:13px;font-style:normal;font-weight:600;line-height:1.2;letter-spacing:0}
+#root .ft-detail-top h2{font-family:var(--ftb-ui)!important;font-size:22px;font-style:normal;font-weight:600;line-height:1.25;letter-spacing:0}
+#root .ft-person-link{font-family:var(--ftb-ui);font-size:13px;font-style:normal;font-weight:400;line-height:1.6;letter-spacing:0}
+#root .ft-couple-names{font-family:var(--ftb-ui);font-size:14px;font-style:normal;font-weight:600;line-height:1.45;letter-spacing:0}
+#root .ft-maiden-name{font-family:var(--ftb-ui);font-size:11px;font-style:normal;font-weight:400;line-height:1.2;letter-spacing:0}
+/* Small labels, counts and forms stay clear and practical. */
+#root .ft-node-role,#root .ft-photo-count,#root .ft-detail-section h3,#root .ft-edit-label,#root .ft-partial-date legend,#root .ft-life-dates,#root .ft-count,#root .ft-toolbar,#root [role="combobox"],#root [role="option"],#root label,#root legend{font-family:var(--ftb-ui);font-style:normal}
+#root .ft-detail-section h3{font-size:12px;font-weight:500;letter-spacing:0}
+#root input,#root select,#root textarea,#root .ft-toolbar output{font-variant-numeric:tabular-nums}
+/* Preserve the warm sepia wordmark above the shared UI font defaults. */
+#root [data-brand="family-time-box"] .ftb-brand-wordmark{font-family:var(--ftb-display);font-style:italic;font-weight:400}
+@media(max-width:639px){#root main h1,#root .ft-heading h1,#root .ft-subheader h1{font-size:22px;letter-spacing:-.5px}#root .fixed h2,#root .ft-dialog h2{font-size:24px}#root .ft-detail-top h2{font-size:20px}}

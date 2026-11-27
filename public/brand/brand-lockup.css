@@ -1,0 +1,6 @@
+/* Branding only: the rest of the current app keeps its original design. */
+[data-brand="family-time-box"]{gap:11px}
+[data-brand="family-time-box"] .ftb-brand-symbol{display:block;width:46px;height:46px;flex:none;background:transparent;border:0;border-radius:0;box-shadow:none}
+[data-brand="family-time-box"] .ftb-brand-wordmark{font:italic 400 28px/1.02 Georgia,'Times New Roman',serif;letter-spacing:-1.25px;white-space:nowrap;color:#e0bf8b;background:none;-webkit-text-fill-color:#e0bf8b}
+@media(max-width:1023px){[data-brand="family-time-box"] .ftb-brand-wordmark{font-size:27px}}
+@media(max-width:639px){[data-brand="family-time-box"]{gap:8px}[data-brand="family-time-box"] .ftb-brand-symbol{width:39px;height:39px}[data-brand="family-time-box"] .ftb-brand-wordmark{font-size:24px;letter-spacing:-1px}}

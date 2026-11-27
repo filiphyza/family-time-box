@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Browser test artifacts
+test-results/
+playwright-report/
+
+# Generated local face-detector runtime (prepared from the pinned npm package)
+public/face-detection/wasm/
+
+# Generated recognition runtime (copied from pinned onnxruntime-web)
+public/face-recognition/wasm/
+
+# Per-feature Playwright output folders
+test-results-*/
+
+# Model binaries downloaded by scripts/prepare-*.mjs (postinstall/predev/prebuild)
+public/face-detection/*.tflite
+public/face-recognition/*.onnx
+public/scene-embedding/*.tflite

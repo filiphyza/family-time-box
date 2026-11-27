@@ -1,0 +1,5 @@
+MobileNetV3 Small image embedding model, official Google MediaPipe release.
+Source: https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite
+SHA-256: bbbb4c51a55a53905af1daec995ca1aae355046f8839bb8c9f5ce9271394bc40
+Documentation: https://developers.google.com/edge/mediapipe/solutions/vision/image_embedder
+The application performs inference locally. No archive image is uploaded.
