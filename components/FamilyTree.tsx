@@ -24,8 +24,9 @@ interface Props {
 const clampScale = (scale: number, minimum = 0.01) => Math.min(2, Math.max(minimum, scale));
 // Phones (portrait, or landscape with little height) get floating controls and a smaller start zoom.
 // Keep these queries in sync with FamilyTree.css.
-// Orientation (not just height) decides sheet vs. landscape, so an on-screen keyboard that
-// shortens a portrait phone's viewport does not switch layouts mid-typing.
+// Sheet vs. landscape is chosen by viewport orientation. index.html asks browsers not to resize
+// the layout for the on-screen keyboard (interactive-widget=resizes-visual), so typing in the
+// sheet does not turn a portrait viewport into a landscape one.
 const COMPACT_QUERY = '(max-width: 639px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)';
 // Portrait phones show person details as a bottom sheet; wider screens use a side drawer or column.
 const SHEET_QUERY = '(max-width: 639px) and (orientation: portrait)';
@@ -402,7 +403,9 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
                   });
                 }
               }}
-              onPointerUp={event => { tapCanvas(event); endPointer(event); }} onPointerCancel={endPointer} onLostPointerCapture={endPointer}
+              onPointerUp={event => { tapCanvas(event); endPointer(event); }} onPointerCancel={endPointer}
+              // A card losing its implicit touch capture to the canvas (pan from a card) is not the end of the gesture.
+              onLostPointerCapture={event => { if (event.target === event.currentTarget) endPointer(event); }}
               onKeyDown={event => {
                 // Escape from the canvas or a card puts away details that cover the tree.
                 if (event.key === 'Escape' && detailsOpenRef.current && matches(DRAWER_QUERY)) { event.preventDefault(); setDetailsOpen(false); return; }
@@ -432,7 +435,7 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
                   const accessibleDescription = [relationshipLabels.get(node.id), maidenName ? `${t.treeMaidenName}: ${maidenName}` : ''].filter(Boolean).join(' · ');
                   const count = photoCounts.get(personNameKey(person.name)) || 0;
                   return <button key={node.id} type="button" className={`ft-node ${selected?.id === node.id ? 'ft-node-selected' : ''} ${isRoot ? 'ft-node-root' : ''}`} aria-label={`${t.treeSelect} ${person.name}`} aria-pressed={selected?.id === node.id} aria-description={accessibleDescription} disabled={saving} data-person-id={node.id}
-                    onClick={() => { if (cardDragged.current) { cardDragged.current = false; return; } setSelectedId(node.id); setDetailsOpen(true); revealSelected(node.id); }} onFocus={() => { if (document.activeElement?.matches(':focus-visible')) centerPerson(node.id); }}
+                    onClick={event => { const dragged = cardDragged.current && event.detail > 0; cardDragged.current = false; if (dragged) return; setSelectedId(node.id); setDetailsOpen(true); revealSelected(node.id); }} onFocus={() => { if (document.activeElement?.matches(':focus-visible')) centerPerson(node.id); }}
                     style={{ left: node.x, top: node.y, width: TREE_NODE_WIDTH, height: TREE_NODE_HEIGHT }}>
                     <span className="ft-avatar"><PersonAvatar person={person} photo={avatarPhotoFor(person)} /></span>
                     <span className="ft-node-content"><span className="ft-node-role" title={relationshipLabels.get(node.id)}>{relationshipLabels.get(node.id)}</span><strong>{person.name}</strong>{maidenName && <span className="ft-maiden-name" aria-label={`${t.treeMaidenName}: ${maidenName}`} title={`${t.treeMaidenName}: ${maidenName}`}>({maidenName})</span>}<span className="ft-photo-count">{count} {t.treePhotos}</span></span>
@@ -444,18 +447,18 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
           </div>
           {selected && <aside ref={details} id="family-tree-details" className={`ft-details ${detailsOpen ? 'ft-details-open' : ''}`} aria-label={selected.name} aria-busy={saving} onKeyDown={event => { if (event.key === 'Escape') closeDetails(); }}>
             <div className="ft-detail-header">
-            <button type="button" className="ft-sheet-handle" aria-label={sheetExpanded ? t.treeShrinkDetails : t.treeExpandDetails} aria-expanded={sheetExpanded} aria-controls="family-tree-details"
-              onPointerDown={event => { handleStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
-              onPointerMove={moveHandle} onPointerUp={endHandle} onPointerCancel={() => { handleStart.current = null; dragSheet(null); }}
-              onClick={() => { if (handleDragged.current) handleDragged.current = false; else setSheetExpanded(current => !current); }}><span aria-hidden="true" /></button>
-            <button type="button" className="ft-details-close" aria-label={t.close} onClick={closeDetails}><X size={20} /></button>
-            <div className="ft-detail-top">
-              <button type="button" className="ft-detail-icon ft-avatar-button" disabled={saving} aria-label={t.treeChangeAvatar.replace('{name}', selected.name)} title={t.treeChangeAvatar.replace('{name}', selected.name)} onClick={() => setAvatarPersonId(selected.id)}>
-                <PersonAvatar person={selected} photo={avatarPhotoFor(selected)} />
-                <span className="ft-avatar-camera" aria-hidden="true"><Camera size={13} /></span>
-              </button>
-              <span className="ft-node-role">{relationshipLabels.get(selected.id)}</span><h2>{selected.name}</h2>{maidenNames.get(selected.id)?.display && <p className="ft-detail-maiden">{t.treeMaidenName}: {maidenNames.get(selected.id)!.display}</p>}<p>{photoCounts.get(personNameKey(selected.name)) || 0} {t.treePhotos}</p>
-            </div>
+              <button type="button" className="ft-sheet-handle" aria-label={sheetExpanded ? t.treeShrinkDetails : t.treeExpandDetails} aria-expanded={sheetExpanded} aria-controls="family-tree-details"
+                onPointerDown={event => { handleDragged.current = false; handleStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
+                onPointerMove={moveHandle} onPointerUp={endHandle} onPointerCancel={() => { handleStart.current = null; dragSheet(null); }}
+                onClick={() => { if (handleDragged.current) handleDragged.current = false; else setSheetExpanded(current => !current); }}><span aria-hidden="true" /></button>
+              <button type="button" className="ft-details-close" aria-label={t.close} onClick={closeDetails}><X size={20} /></button>
+              <div className="ft-detail-top">
+                <button type="button" className="ft-detail-icon ft-avatar-button" disabled={saving} aria-label={t.treeChangeAvatar.replace('{name}', selected.name)} title={t.treeChangeAvatar.replace('{name}', selected.name)} onClick={() => setAvatarPersonId(selected.id)}>
+                  <PersonAvatar person={selected} photo={avatarPhotoFor(selected)} />
+                  <span className="ft-avatar-camera" aria-hidden="true"><Camera size={13} /></span>
+                </button>
+                <span className="ft-node-role">{relationshipLabels.get(selected.id)}</span><h2>{selected.name}</h2>{maidenNames.get(selected.id)?.display && <p className="ft-detail-maiden">{t.treeMaidenName}: {maidenNames.get(selected.id)!.display}</p>}<p>{photoCounts.get(personNameKey(selected.name)) || 0} {t.treePhotos}</p>
+              </div>
             </div>
             <PersonDetailsEditor key={selected.id} person={selected} maidenNameInfo={maidenNames.get(selected.id)!} language={language} disabled={saving} onSave={savePerson} />
             <div className="ft-detail-section"><h3>{t.treeParents}</h3>

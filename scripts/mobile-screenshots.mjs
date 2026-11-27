@@ -1,6 +1,7 @@
 // Captures mobile screenshots of the family tree against a local dev server, using
 // browser storage seeded with a sample tree (no Firebase sign-in needed).
-// Usage: npm run dev   (in another terminal), then: node scripts/mobile-screenshots.mjs [outDir] [label]
+// Usage: npm run dev   (in another terminal), then: npm run screenshots:mobile -- [outDir] [label]
+// Set CHROMIUM_PATH to a Chromium binary if Playwright's own browser is not installed.
 import { chromium, devices } from 'playwright';
 import fs from 'node:fs';
 import { familyTreeWithCousins } from '../tests/family-tree-fixtures.mjs';

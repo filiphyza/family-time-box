@@ -13,7 +13,8 @@
     "test:upload": "playwright test",
     "postinstall": "node scripts/prepare-face-detection.mjs && node scripts/prepare-face-recognition.mjs && node scripts/prepare-scene-embedding.mjs",
     "predev": "node scripts/prepare-face-detection.mjs && node scripts/prepare-face-recognition.mjs && node scripts/prepare-scene-embedding.mjs",
-    "prebuild": "node scripts/prepare-face-detection.mjs && node scripts/prepare-face-recognition.mjs && node scripts/prepare-scene-embedding.mjs"
+    "prebuild": "node scripts/prepare-face-detection.mjs && node scripts/prepare-face-recognition.mjs && node scripts/prepare-scene-embedding.mjs",
+    "screenshots:mobile": "node scripts/mobile-screenshots.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
