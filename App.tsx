@@ -508,7 +508,7 @@ const App: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 py-3 lg:h-16 lg:flex-nowrap lg:py-0">
             <div className="flex shrink-0 items-center gap-2 ftb-brand" data-brand="family-time-box" onClick={() => setViewMode('gallery')}>
-              <img src="/brand/family-time-box.svg" alt="" aria-hidden="true" className="ftb-brand-symbol cursor-pointer" />
+              <img src={`${import.meta.env.BASE_URL}brand/family-time-box.svg`} alt="" aria-hidden="true" className="ftb-brand-symbol cursor-pointer" />
               <span className="ftb-brand-wordmark cursor-pointer">{t.appTitle}</span>
             </div>
             
