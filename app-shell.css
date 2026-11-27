@@ -1,13 +1,19 @@
-/* Phone layout for the app shell. "Compact" covers portrait phones and phones held in
-   landscape (short viewports), where every pixel of vertical space goes to content. */
-@media (max-width: 639px), (max-height: 500px) {
-  .app-header .app-header-row { min-height: 0; height: auto; flex-wrap: nowrap; gap: 8px; padding-top: 6px; padding-bottom: 6px; }
+/* Phone layout for the app shell. "Compact" covers portrait phones and touch devices held in
+   landscape (short viewports), where every pixel of vertical space goes to content.
+   Keep the query in sync with COMPACT_QUERY in components/FamilyTree.tsx. */
+@media (max-width: 639px), (max-height: 500px) and (pointer: coarse) {
+  .app-header .app-header-row { min-height: 0; height: auto; flex-wrap: nowrap; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
   .app-header [data-brand="family-time-box"] .ftb-brand-symbol { width: 32px; height: 32px; }
   .app-header [data-brand="family-time-box"] .ftb-brand-wordmark { display: none; }
-  .app-header .app-nav { order: 0; width: auto; margin-left: 4px; gap: 2px; justify-content: flex-start; padding: 2px; border: 1px solid #1e293b; border-radius: 10px; background: #0b1222; }
-  .app-header .app-nav button { padding: 6px 10px; border-radius: 8px; }
+  .app-header .app-nav { order: 0; width: auto; margin-left: 2px; gap: 2px; justify-content: flex-start; padding: 2px; border: 1px solid #1e293b; border-radius: 12px; background: #0b1222; }
+  .app-header .app-nav button { justify-content: center; min-width: 44px; min-height: 40px; padding: 0 12px; border-radius: 10px; }
   .app-header .app-nav-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .app-header .app-header-actions { gap: 0; margin-left: auto; }
-  .app-header .app-header-actions > button, .app-header .app-header-actions > div > button { padding: 7px; }
-  .app-gallery-filters.app-gallery-filters { top: 3.5rem; }
+  .app-header .app-header-actions > button:not(.hidden) { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; }
+  /* The tall filter bar would cover much of a small screen if it followed the scroll. */
+  .app-gallery-filters.app-gallery-filters { position: static; }
+}
+/* Add-relative dialog on narrow phones: the name field gets the full width. */
+@media (max-width: 400px) {
+  .ft-dialog form > div:first-child { flex-direction: column; align-items: stretch; }
 }

@@ -549,7 +549,7 @@ const App: React.FC = () => {
                 { mode: 'gallery', label: t.gallery, Icon: LayoutGrid },
                 { mode: 'tree', label: t.familyTree, Icon: GitBranch },
               ] as const).map(({ mode, label, Icon }) => (
-                <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-current={viewMode === mode ? 'page' : undefined} aria-label={label} title={label}
+                <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-current={viewMode === mode ? 'page' : undefined} title={label}
                   className={`flex items-center gap-2 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sepia-400 ${viewMode === mode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
                   <Icon size={16} aria-hidden="true" /><span className="app-nav-label">{label}</span>
                 </button>
@@ -563,6 +563,7 @@ const App: React.FC = () => {
                  onClick={() => setShowSettings(true)}
                  className="p-2 text-slate-400 hover:text-white transition-colors"
                  title={t.settings}
+                 aria-label={t.settings}
                  disabled={Boolean(uploadProgress) || treeSaving}
                >
                  <Settings size={20} />

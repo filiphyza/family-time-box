@@ -38,6 +38,14 @@ for (const [name, device] of viewports) {
   await page.waitForTimeout(200);
   await shot('3-details-bottom');
   await details.evaluate(element => { element.scrollTop = 0; });
+  const handle = details.getByRole('button', { name: 'Show more details', exact: true });
+  if (await handle.isVisible()) {
+    await handle.tap();
+    await page.waitForTimeout(400);
+    await shot('3b-expanded');
+    await details.getByRole('button', { name: 'Show more of the tree', exact: true }).tap();
+    await page.waitForTimeout(300);
+  }
   await details.getByRole('button', { name: 'Edit details', exact: true }).tap();
   await page.waitForTimeout(300);
   await shot('4-edit');
