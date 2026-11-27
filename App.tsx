@@ -10,8 +10,9 @@ import { UploadZone, UploadProgressPanel, type UploadProgress } from './componen
 import { SettingsModal } from './components/SettingsModal';
 import { JobsButton, JobsPopup, type PhotoSimilarityJob } from './components/JobsPopup';
 import { translations } from './utils/translations';
-import { Search, LayoutGrid, PlusCircle, Shuffle, Users, Filter, Settings, RefreshCw, Download, AlertTriangle, Edit3, GitBranch } from 'lucide-react';
+import { Search, LayoutGrid, PlusCircle, Shuffle, Users, Filter, Settings, RefreshCw, Download, AlertTriangle, Edit3, GitBranch, LogIn, LogOut, Lock } from 'lucide-react';
 import { storageService } from './services/storageService';
+import { currentFirebaseUser, signInWithGoogle, signOutOfFirebase, isPermissionDenied } from './services/firebaseApp';
 import { prepareImageUpload } from './utils/imageUpload';
 import { collectArchivePeople, personNameKey, renamePhotoPerson } from './utils/people';
 import { displaySource } from './utils/thumbnails';
@@ -57,6 +58,11 @@ const App: React.FC = () => {
   const [photoMutations, setPhotoMutations] = useState(0);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [fsNeeded, setFsNeeded] = useState(false);
+  // Cloud archive access: sign-in is required, and the rules may still refuse the account.
+  const [cloudGate, setCloudGate] = useState<null | 'signin' | 'denied'>(null);
+  const [cloudEmail, setCloudEmail] = useState<string | null>(null);
+  const [signInError, setSignInError] = useState(false);
+  const archiveBlocked = fsNeeded || cloudGate !== null;
   
   // Initialize language from storage service
   const [language, setLanguage] = useState<Language>(storageService.getSettings().language);
@@ -113,6 +119,14 @@ const App: React.FC = () => {
         } else {
             setFsNeeded(false);
         }
+        const cloudConfig = settings.storageType === 'cloud' ? storageService.cloudConfig() : null;
+        if (cloudConfig) {
+          const user = await currentFirebaseUser(cloudConfig);
+          if (version !== loadVersion.current) return;
+          setCloudEmail(user?.email || null);
+          if (!user) { setCloudGate('signin'); setIsLoading(false); return; }
+        } else setCloudEmail(null);
+        setCloudGate(null);
 
         const [photoResult, treeResult] = await Promise.allSettled([
           storageService.loadPhotos(), storageService.loadFamilyTree(),
@@ -128,7 +142,10 @@ const App: React.FC = () => {
               ? { ...photo, thumbnailUrl: prepared.thumbnailUrl, thumbnailSource: prepared.thumbnailSource } : photo));
           }, () => version !== loadVersion.current);
         }
-        else { setPhotos([]); console.error('Failed to load photos', photoResult.reason); }
+        else {
+          setPhotos([]); console.error('Failed to load photos', photoResult.reason);
+          if (isPermissionDenied(photoResult.reason)) setCloudGate('denied');
+        }
         if (treeResult.status === 'fulfilled') setFamilyTree(treeResult.value);
         else { setTreeLoadError(true); console.error('Failed to load family tree', treeResult.reason); }
     } catch (e) {
@@ -142,6 +159,21 @@ const App: React.FC = () => {
     loadData();
     return () => { ++loadVersion.current; };
   }, []);
+
+  const handleSignIn = async () => {
+    const config = storageService.cloudConfig();
+    if (!config) return;
+    setSignInError(false);
+    try { await signInWithGoogle(config); }
+    catch (error) { console.error('Sign-in failed', error); setSignInError(true); return; }
+    loadData();
+  };
+
+  const handleSignOut = async () => {
+    const config = storageService.cloudConfig();
+    if (config) await signOutOfFirebase(config);
+    loadData();
+  };
 
   const handleReconnectDrive = async () => {
       const success = await storageService.reconnectFileSystem();
@@ -433,7 +465,7 @@ const App: React.FC = () => {
 
   const recognition = useBackgroundFaceRecognition({
     photos,
-    enabled: !isLoading && !fsNeeded && !showSettings && !uploadProgress && photoMutations === 0,
+    enabled: !isLoading && !archiveBlocked && !showSettings && !uploadProgress && photoMutations === 0,
     archiveKey: renderedArchiveVersion,
     priorityPhotoId: selectedPhoto?.id,
     getCurrentPhoto,
@@ -441,7 +473,7 @@ const App: React.FC = () => {
   });
   const similarityIndexing = useBackgroundPhotoSimilarity({
     photos,
-    enabled: !isLoading && !fsNeeded && !showSettings && !uploadProgress && photoMutations === 0,
+    enabled: !isLoading && !archiveBlocked && !showSettings && !uploadProgress && photoMutations === 0,
     archiveKey: renderedArchiveVersion,
     priorityPhotoId: selectedPhoto?.id,
     getCurrentPhoto,
@@ -489,7 +521,7 @@ const App: React.FC = () => {
   };
   useAutomaticPhotoSuggestions({
     photos, familyPeople: familyTree?.people || [],
-    enabled: storageService.getSettings().suggestionMode === 'automatic' && !isLoading && !fsNeeded && !showSettings && !uploadProgress && !treeSaving && !treeLoadError && photoMutations === 0,
+    enabled: storageService.getSettings().suggestionMode === 'automatic' && !isLoading && !archiveBlocked && !showSettings && !uploadProgress && !treeSaving && !treeLoadError && photoMutations === 0,
     archiveKey: renderedArchiveVersion, faceIndexing: recognition, sceneIndexing: similarityIndexing,
     getCurrentPhoto, onApply: handleAutomaticSuggestions,
   });
@@ -536,6 +568,12 @@ const App: React.FC = () => {
                  <Settings size={20} />
                </button>
                <JobsButton language={language} onClick={() => setShowJobs(true)} expanded={showJobs} />
+               {cloudEmail && (
+                 <button type="button" onClick={handleSignOut} className="p-2 text-slate-400 hover:text-white transition-colors"
+                   title={`${t.signOut} (${cloudEmail})`} aria-label={`${t.signOut} (${cloudEmail})`} disabled={Boolean(uploadProgress) || treeSaving}>
+                   <LogOut size={20} />
+                 </button>
+               )}
                <button 
                 onClick={shuffleGallery}
                 className="p-2 text-slate-400 hover:text-sepia-400 transition-colors hidden sm:block"
@@ -605,8 +643,29 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {viewMode === 'tree' ? (
-          !fsNeeded && (treeLoadError ? (
+        {cloudGate && (
+            <div role={cloudGate === 'denied' ? 'alert' : undefined} className="mx-auto mb-8 flex max-w-lg flex-col items-center gap-4 rounded-xl border border-slate-700 bg-slate-800/60 p-8 text-center">
+                <div className="rounded-full bg-slate-900 p-3"><Lock className="text-sepia-400" size={32} aria-hidden="true" /></div>
+                <div>
+                    <h2 className="text-lg font-semibold text-slate-100">{cloudGate === 'denied' ? t.accessDeniedTitle : t.signInTitle}</h2>
+                    <p className="mt-1 text-sm text-slate-400">{cloudGate === 'denied' ? t.accessDeniedDesc : t.signInDesc}</p>
+                    {cloudGate === 'denied' && cloudEmail && <p className="mt-2 text-sm text-slate-300">{t.signedInAs} {cloudEmail}</p>}
+                </div>
+                {cloudGate === 'signin' ? (
+                  <button type="button" onClick={handleSignIn} className="flex items-center gap-2 rounded-lg bg-sepia-700 px-6 py-2 font-medium text-white shadow-lg transition-colors hover:bg-sepia-600">
+                    <LogIn size={18} aria-hidden="true" />{t.signInButton}
+                  </button>
+                ) : (
+                  <button type="button" onClick={handleSignOut} className="flex items-center gap-2 rounded-lg bg-slate-700 px-6 py-2 font-medium text-white transition-colors hover:bg-slate-600">
+                    <LogOut size={18} aria-hidden="true" />{t.signOut}
+                  </button>
+                )}
+                {signInError && <p role="alert" className="text-sm text-red-300">{t.signInFailed}</p>}
+            </div>
+        )}
+
+        {cloudGate ? null : viewMode === 'tree' ? (
+          !archiveBlocked && (treeLoadError ? (
             <div role="alert" className="rounded-xl border border-red-800 bg-red-950/30 p-6 space-y-4">
               <p>{t.treeLoadFailed}</p>
               <button type="button" onClick={loadData} className="rounded-lg bg-slate-700 px-4 py-2">{t.treeRetry}</button>
@@ -620,7 +679,7 @@ const App: React.FC = () => {
               <h1 className="text-3xl font-bold text-white">{t.uploadTitle}</h1>
               <p className="text-slate-400">{t.uploadDesc}</p>
             </div>
-            <UploadZone onFileSelect={handleFileUpload} language={language} disabled={isLoading} progress={uploadProgress} />
+            <UploadZone onFileSelect={handleFileUpload} language={language} disabled={isLoading || archiveBlocked} progress={uploadProgress} />
           </div>
         ) : (
           <div className="space-y-6">
@@ -692,7 +751,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Gallery Grid */}
-            {!fsNeeded && filteredPhotos.length === 0 ? (
+            {!archiveBlocked && filteredPhotos.length === 0 ? (
                 <div className="text-center py-20 opacity-50">
                     <p className="text-xl">{t.noPhotos}</p>
                     <button onClick={() => setViewMode('upload')} className="mt-4 text-sepia-400 hover:underline">{t.uploadSome}</button>
@@ -756,7 +815,7 @@ const App: React.FC = () => {
           </>
       )}
       {showJobs && <JobsPopup language={language} recognition={recognition} similarity={similarityJob} similarityIndexing={similarityIndexing}
-        waitingForArchive={isLoading || fsNeeded} onClose={() => setShowJobs(false)} />}
+        waitingForArchive={isLoading || archiveBlocked} onClose={() => setShowJobs(false)} />}
     </div>
   );
 };

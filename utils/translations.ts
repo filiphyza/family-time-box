@@ -269,7 +269,18 @@ export const translations = {
     installApp: "Install App",
     installDesc: "Install as a native Windows application",
     reconnectDrive: "Reconnect Drive",
-    reconnectDriveDesc: "Allow access to your archive folder to continue. Your photos remain in that folder."
+    reconnectDriveDesc: "Allow access to your archive folder to continue. Your photos remain in that folder.",
+    save: "Save",
+    geminiKeyLabel: "Your Gemini API key (for restoring and describing photos)",
+    geminiKeyHelp: "Stored only in this browser and sent only to Google's Gemini API. Leave empty to turn AI restoration off. Get a free key at",
+    signInTitle: "Sign in to the family archive",
+    signInDesc: "The photos are private. Sign in with a Google account that the archive owner has allowed.",
+    signInButton: "Sign in with Google",
+    signInFailed: "Sign-in did not complete. Please try again.",
+    signOut: "Sign out",
+    accessDeniedTitle: "This account does not have access",
+    accessDeniedDesc: "Ask the archive owner to add this email address to the allowed list, then sign in again.",
+    signedInAs: "Signed in as"
   },
   sk: {
     jobs: "Úlohy",
@@ -540,6 +551,17 @@ export const translations = {
     installApp: "Inštalovať",
     installDesc: "Inštalovať ako natívnu Windows aplikáciu",
     reconnectDrive: "Znova pripojiť disk",
-    reconnectDriveDesc: "Povoľte prístup k priečinku archívu. Vaše fotografie zostávajú uložené v tomto priečinku."
+    reconnectDriveDesc: "Povoľte prístup k priečinku archívu. Vaše fotografie zostávajú uložené v tomto priečinku.",
+    save: "Uložiť",
+    geminiKeyLabel: "Váš Gemini API kľúč (na obnovu a popis fotografií)",
+    geminiKeyHelp: "Uloží sa iba v tomto prehliadači a posiela sa iba do Gemini API od Googlu. Ak ho necháte prázdny, AI obnova bude vypnutá. Bezplatný kľúč získate na",
+    signInTitle: "Prihláste sa do rodinného archívu",
+    signInDesc: "Fotografie sú súkromné. Prihláste sa Google účtom, ktorému majiteľ archívu povolil prístup.",
+    signInButton: "Prihlásiť sa cez Google",
+    signInFailed: "Prihlásenie sa nedokončilo. Skúste to znova.",
+    signOut: "Odhlásiť sa",
+    accessDeniedTitle: "Tento účet nemá prístup",
+    accessDeniedDesc: "Požiadajte majiteľa archívu, aby pridal túto e-mailovú adresu medzi povolené, a potom sa prihláste znova.",
+    signedInAs: "Prihlásený ako"
   }
 };

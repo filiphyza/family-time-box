@@ -4,7 +4,8 @@ import { X, Globe, Cpu, Database, Save, AlertCircle, HardDrive, Cloud, FolderOpe
 import { Language, AppSettings, FirebaseConfig, StorageType } from '../types';
 import { translations } from '../utils/translations';
 import { storageService } from '../services/storageService';
-import { isGeminiConfigured } from '../services/geminiService';
+import { isGeminiConfigured, hasBuiltInGeminiKey, getPersonalGeminiKey, setPersonalGeminiKey } from '../services/geminiService';
+import { hostedFirebaseConfig } from '../services/firebaseApp';
 import { GEMINI_MODELS } from '../services/geminiModels.mjs';
 import { aiSuggestionTranslations } from '../utils/aiSuggestionTranslations';
 
@@ -20,7 +21,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ currentLanguage, o
   const [activeTab, setActiveTab] = useState<'general' | 'storage'>('general');
   const [settings, setSettings] = useState<AppSettings>(storageService.getSettings());
   const [fbConfig, setFbConfig] = useState<string>(
-    JSON.stringify(settings.firebaseConfig || {
+    JSON.stringify(settings.firebaseConfig || hostedFirebaseConfig || {
       apiKey: "",
       authDomain: "",
       projectId: "",
@@ -34,7 +35,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ currentLanguage, o
       settings.storageType === 'filesystem' && storageService.isFileSystemConnected()
   );
 
-  const apiKeyPresent = isGeminiConfigured();
+  const [geminiKey, setGeminiKey] = useState<string>(getPersonalGeminiKey());
+  const [apiKeyPresent, setApiKeyPresent] = useState<boolean>(isGeminiConfigured());
+  const saveGeminiKey = () => {
+    setPersonalGeminiKey(geminiKey);
+    setApiKeyPresent(isGeminiConfigured());
+    setSaveStatus(t.configSaved);
+    setTimeout(() => setSaveStatus(''), 2000);
+  };
 
   const handleSaveSettings = () => {
     try {
@@ -133,6 +141,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ currentLanguage, o
                         </span>
                         <div className={`w-3 h-3 rounded-full ${apiKeyPresent ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
                     </div>
+                    {!hasBuiltInGeminiKey() && (
+                      <div className="space-y-2">
+                        <label htmlFor="personal-gemini-key" className="block text-sm text-slate-300">{t.geminiKeyLabel}</label>
+                        <div className="flex gap-2">
+                          <input id="personal-gemini-key" type="password" autoComplete="off" spellCheck={false}
+                            value={geminiKey} onChange={event => setGeminiKey(event.target.value)}
+                            className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 focus:border-sepia-500 focus:outline-none" />
+                          <button type="button" onClick={saveGeminiKey} className="rounded-lg bg-sepia-700 px-4 py-2 text-sm font-medium text-white hover:bg-sepia-600">{t.save}</button>
+                        </div>
+                        <p className="text-xs leading-relaxed text-slate-500">{t.geminiKeyHelp}{' '}
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-sepia-400 underline">aistudio.google.com/apikey</a></p>
+                      </div>
+                    )}
                 </div>
 
                 <div className="rounded-lg border border-slate-700 bg-slate-950/50 p-4 space-y-3 text-sm">

@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Family Time Box: only signed-in Google accounts on the allowlist can see or change the archive.
+// The allowlist is the `emails` array (lowercase addresses) in the Firestore document
+// access/allowlist. Edit it in the Firebase console or with scripts/upload-archive-to-firebase.mjs.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isFamily() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower()
+          in get(/databases/$(database)/documents/access/allowlist).data.emails;
+    }
+
+    match /photos/{photoId} {
+      allow read, write: if isFamily();
+    }
+
+    match /archive/{documentId} {
+      allow read, write: if isFamily();
+    }
+
+    // Nobody can read or change the allowlist from the app.
+    match /access/{documentId} {
+      allow read, write: if false;
+    }
+  }
+}

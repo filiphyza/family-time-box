@@ -4,14 +4,29 @@ import { normalizePersonName, personNameKey, applyPhotoDescriptionNames } from '
 import { GEMINI_MODELS } from './geminiModels.mjs';
 import { isPartialDate, formatPartialDate, applyPhotoDescriptionDate } from '../utils/partialDates';
 
-const getApiKey = (): string => (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+// The hosted site has no built-in key (anything in the bundle is public), so each person can
+// paste their own Google AI Studio key in Settings; it stays in this browser only.
+export const PERSONAL_GEMINI_KEY = 'ancestry-lens-gemini-key';
+const builtInApiKey = (): string => (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+export const hasBuiltInGeminiKey = (): boolean => Boolean(builtInApiKey());
+export const getPersonalGeminiKey = (): string => {
+  try { return (localStorage.getItem(PERSONAL_GEMINI_KEY) || '').trim(); } catch { return ''; }
+};
+export const setPersonalGeminiKey = (key: string): void => {
+  const value = key.trim();
+  if (value) localStorage.setItem(PERSONAL_GEMINI_KEY, value);
+  else localStorage.removeItem(PERSONAL_GEMINI_KEY);
+};
+const getApiKey = (): string => builtInApiKey() || getPersonalGeminiKey();
 export const isGeminiConfigured = (): boolean => Boolean(getApiKey());
 
 let ai: GoogleGenAI | undefined;
+let aiKey = '';
 const getClient = (): GoogleGenAI => {
   const apiKey = getApiKey();
-  if (!apiKey) throw new Error('Set GEMINI_API_KEY in .env.local, save the file, and reload the app.');
-  return ai ??= new GoogleGenAI({ apiKey });
+  if (!apiKey) throw new Error('Add your Gemini API key in Settings > General (or set GEMINI_API_KEY in .env.local).');
+  if (!ai || aiKey !== apiKey) { ai = new GoogleGenAI({ apiKey }); aiKey = apiKey; }
+  return ai;
 };
 
 export const RESTORATION_CONFIG: GenerateContentConfig = {

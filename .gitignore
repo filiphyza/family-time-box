@@ -40,3 +40,10 @@ test-results-*/
 public/face-detection/*.tflite
 public/face-recognition/*.onnx
 public/scene-embedding/*.tflite
+
+# Firebase admin credentials and CLI state (never commit)
+*service-account*.json
+*-firebase-adminsdk-*.json
+.firebase/
+firebase-debug.log
+

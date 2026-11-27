@@ -5,9 +5,9 @@ import { createThumbnail, displaySource, hasThumbnail, thumbnailSource } from '.
 import { collectArchivePeople, personNameKey, renamePhotoPerson } from '../utils/people';
 import { BrowserPhotoStorage } from './browserPhotoStorage';
 import { loadArchiveHandle, saveArchiveHandle, type ArchiveDirectoryHandle } from './archiveFolder';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { firebaseAppFor, hostedFirebaseConfig, currentFirebaseUser } from './firebaseApp';
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, writeBatch, deleteField, runTransaction } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject, listAll } from 'firebase/storage';
 
 
 const SETTINGS_KEY = 'ancestry-lens-settings';
@@ -389,8 +389,7 @@ class CloudStorageAdapter implements StorageAdapter {
 
   constructor(config: FirebaseConfig) {
     try {
-      // Avoid initializing twice in dev hot-reload
-      const app = getApps().length === 0 ? initializeApp(config) : getApp();
+      const app = firebaseAppFor(config);
       this.db = getFirestore(app);
       this.storage = getStorage(app);
       this.initialized = true;
@@ -497,6 +496,11 @@ class CloudStorageAdapter implements StorageAdapter {
     if (!this.initialized) return;
     try {
         await deleteDoc(doc(this.db, "photos", id));
+        // Remove the image files too; leftover files would keep using storage quota.
+        try {
+          const files = await listAll(ref(this.storage, `photos/${id}`));
+          await Promise.all(files.items.map(item => deleteObject(item)));
+        } catch (cleanupError) { console.warn('Could not remove cloud image files for a deleted photo.', cleanupError); }
     } catch(e) {
         console.error("Error deleting from cloud", e);
         throw e;
@@ -552,14 +556,16 @@ class StorageService {
     const oldLang = localStorage.getItem('ancestry-lens-lang');
     return {
       language: (oldLang as any) || 'en',
-      storageType: 'local'
+      // The hosted family archive opens in cloud mode; other builds stay local-first.
+      storageType: hostedFirebaseConfig ? 'cloud' : 'local'
     };
   }
 
   private createAdapter(): StorageAdapter {
-    if (this.settings.storageType === 'cloud' && this.settings.firebaseConfig) {
+    const firebaseConfig = this.cloudConfig();
+    if (this.settings.storageType === 'cloud' && firebaseConfig) {
       try {
-        return new CloudStorageAdapter(this.settings.firebaseConfig);
+        return new CloudStorageAdapter(firebaseConfig);
       } catch (e) {
         return new BrowserPhotoStorage();
       }
@@ -567,6 +573,17 @@ class StorageService {
         return this.fileSystemAdapter;
     }
     return new BrowserPhotoStorage();
+  }
+
+  /** Config saved in Settings, otherwise the one built into the hosted site. */
+  public cloudConfig(): FirebaseConfig | null {
+    return this.settings.firebaseConfig?.apiKey ? this.settings.firebaseConfig : hostedFirebaseConfig;
+  }
+
+  /** In cloud mode, whether someone is signed in (Firestore/Storage rules require it). */
+  public async hasCloudUser(): Promise<boolean> {
+    const config = this.cloudConfig();
+    return !!config && !!await currentFirebaseUser(config);
   }
 
   public getSettings(): AppSettings {
