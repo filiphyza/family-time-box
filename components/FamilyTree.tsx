@@ -152,22 +152,28 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
   });
   const centerRoot = () => tree.rootId && centerPerson(tree.rootId, homeScale());
   const zoom = (factor: number, point?: { x: number; y: number }) => {
-    const bounds = canvas.current?.getBoundingClientRect();
-    point ||= { x: (bounds?.width || size.width) / 2, y: (bounds?.height || size.height) / 2 };
+    if (!point) {
+      // Zoom around the middle of what the user can actually see, not a spot under the details.
+      const bounds = canvas.current?.getBoundingClientRect();
+      const viewport = { width: bounds?.width || size.width, height: bounds?.height || size.height };
+      const area = detailsOpenRef.current ? visibleCanvas(viewport) : { left: 0, top: 0, right: viewport.width, bottom: viewport.height };
+      point = { x: (area.left + area.right) / 2, y: (area.top + area.bottom) / 2 };
+    }
+    const pivot = point;
     setView(current => {
       const scale = clampScale(current.scale * factor, Math.min(0.01, current.scale));
-      return { scale, x: point.x - (point.x - current.x) * scale / current.scale, y: point.y - (point.y - current.y) * scale / current.scale };
+      return { scale, x: pivot.x - (pivot.x - current.x) * scale / current.scale, y: pivot.y - (pivot.y - current.y) * scale / current.scale };
     });
   };
   const fitTree = () => {
     const { minX, minY, maxX, maxY } = layout.bounds;
     const viewport = measureCanvas();
-    const compact = matches(COMPACT_QUERY), landscape = matches(LANDSCAPE_QUERY);
-    // Leave room for the floating phone controls: along the bottom in portrait, the left edge in landscape.
-    const top = compact ? 16 : 32;
-    const bottom = landscape ? 16 : compact ? 72 : 48;
-    const left = landscape ? 72 : compact ? 16 : 32;
-    const right = compact ? 16 : 32;
+    const compact = matches(COMPACT_QUERY);
+    // Fit into the part of the canvas not covered by open details or the floating phone controls.
+    const area = detailsOpenRef.current || compact ? visibleCanvas(viewport) : { left: 0, top: 0, right: viewport.width, bottom: viewport.height };
+    const margin = compact ? 16 : 32;
+    const top = area.top + margin, left = area.left + margin;
+    const bottom = viewport.height - area.bottom + (compact ? 8 : 48), right = viewport.width - area.right + margin;
     const scale = Math.min(1, Math.max(Number.EPSILON, Math.min((viewport.width - left - right) / Math.max(1, maxX - minX), (viewport.height - top - bottom) / Math.max(1, maxY - minY))));
     setView({ scale, x: left + (viewport.width - left - right) / 2 - (minX + maxX) / 2 * scale, y: top + (viewport.height - top - bottom) / 2 - (minY + maxY) / 2 * scale });
   };
@@ -225,8 +231,14 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
     return () => { if (element.open) element.close(); };
   }, [relation]);
 
-  const openRelation = (next: Relation) => { setError(null); setRelation(next); };
-  const closeRelation = () => { if (!saveLock.current) { setRelation(null); setError(null); } };
+  const relationOpener = useRef<HTMLElement | null>(null);
+  const openRelation = (next: Relation) => { relationOpener.current = document.activeElement as HTMLElement | null; setError(null); setRelation(next); };
+  const closeRelation = () => {
+    if (saveLock.current) return;
+    setRelation(null); setError(null);
+    // Give focus back to the button that opened the dialog.
+    requestAnimationFrame(() => { if (relationOpener.current?.isConnected) relationOpener.current.focus({ preventScroll: true }); });
+  };
   const commit = async (name: string, action: Relation) => {
     if (saveLock.current) return;
     setError(null);
@@ -261,9 +273,19 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
     if (selected) canvas.current?.querySelector<HTMLElement>(`[data-person-id="${CSS.escape(selected.id)}"]`)?.focus({ preventScroll: true });
   };
   // Bottom sheet handle: tap to expand or shrink, swipe down to put the sheet away.
+  const dragSheet = (offset: number | null) => {
+    const panel = details.current;
+    if (!panel) return;
+    panel.style.transition = offset === null ? '' : 'none';
+    panel.style.transform = offset === null ? '' : `translateY(${offset}px)`;
+  };
+  const moveHandle = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (handleStart.current !== null) dragSheet(Math.max(0, event.clientY - handleStart.current));
+  };
   const endHandle = (event: React.PointerEvent<HTMLButtonElement>) => {
     const start = handleStart.current;
     handleStart.current = null;
+    dragSheet(null);
     if (start === null) return;
     const distance = event.clientY - start;
     if (distance > 50) { if (sheetExpanded) setSheetExpanded(false); else closeDetails(); }
@@ -349,6 +371,8 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
               }}
               onPointerUp={event => { tapCanvas(event); endPointer(event); }} onPointerCancel={endPointer} onLostPointerCapture={endPointer}
               onKeyDown={event => {
+                // Escape from the canvas or a card puts away details that cover the tree.
+                if (event.key === 'Escape' && detailsOpenRef.current && matches(DRAWER_QUERY)) { event.preventDefault(); setDetailsOpen(false); return; }
                 if (event.target !== event.currentTarget) return;
                 const offsets: Record<string, [number, number]> = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] };
                 const offset = offsets[event.key];
@@ -387,9 +411,9 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
           </div>
           {selected && <aside ref={details} id="family-tree-details" className={`ft-details ${detailsOpen ? 'ft-details-open' : ''}`} aria-label={selected.name} aria-busy={saving} onKeyDown={event => { if (event.key === 'Escape') closeDetails(); }}>
             <div className="ft-detail-header">
-            <button type="button" className="ft-sheet-handle" aria-label={sheetExpanded ? t.treeShrinkDetails : t.treeExpandDetails} aria-expanded={sheetExpanded}
+            <button type="button" className="ft-sheet-handle" aria-label={sheetExpanded ? t.treeShrinkDetails : t.treeExpandDetails} aria-expanded={sheetExpanded} aria-controls="family-tree-details"
               onPointerDown={event => { handleStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
-              onPointerUp={endHandle} onPointerCancel={() => { handleStart.current = null; }}
+              onPointerMove={moveHandle} onPointerUp={endHandle} onPointerCancel={() => { handleStart.current = null; dragSheet(null); }}
               onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSheetExpanded(current => !current); } }}><span aria-hidden="true" /></button>
             <button type="button" className="ft-details-close" aria-label={t.close} onClick={closeDetails}><X size={20} /></button>
             <div className="ft-detail-top">

@@ -12,8 +12,13 @@
   .app-header .app-header-actions > button:not(.hidden) { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; }
   /* The tall filter bar would cover much of a small screen if it followed the scroll. */
   .app-gallery-filters.app-gallery-filters { position: static; }
+  /* Both filters share the row instead of running off the right edge. */
+  .app-gallery-filters > div:last-child > div { flex: 1 1 0; min-width: 0; }
+  .app-gallery-filters select { width: 100%; min-width: 0; }
 }
-/* Add-relative dialog on narrow phones: the name field gets the full width. */
-@media (max-width: 400px) {
-  .ft-dialog form > div:first-child { flex-direction: column; align-items: stretch; }
+/* Phones held sideways: a thinner header leaves more height for the tree. */
+@media (max-height: 500px) and (pointer: coarse) {
+  .app-header .app-header-row { padding-top: 0; padding-bottom: 0; }
+  .app-header .app-nav button { min-height: 36px; }
+  .app-header .app-header-actions > button:not(.hidden) { min-height: 40px; }
 }

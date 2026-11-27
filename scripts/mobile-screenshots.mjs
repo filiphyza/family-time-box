@@ -50,6 +50,10 @@ for (const [name, device] of viewports) {
   await page.waitForTimeout(300);
   await shot('4-edit');
   await page.keyboard.press('Escape');
+  // Fit while the details are open keeps the whole tree in the uncovered part of the screen.
+  await page.getByRole('button', { name: 'Fit tree', exact: true }).tap();
+  await page.waitForTimeout(300);
+  await shot('4b-fit-with-details');
   await details.getByRole('button', { name: 'Close', exact: true }).tap();
   await page.getByRole('button', { name: 'Fit tree', exact: true }).tap();
   await page.waitForTimeout(300);
