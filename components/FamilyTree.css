@@ -9,6 +9,8 @@
 .ft-start-picker { margin:28px auto 0; max-width:480px; text-align:left; }
 .ft-empty .ft-empty-note { font-size:12px; margin-top:24px; }
 .ft-workspace { position:absolute; inset:0; display:grid; grid-template-columns:minmax(0,1fr) 360px; grid-template-rows:auto minmax(0,1fr); overflow:hidden; background:#101b2c; }
+/* clip, not just hidden: the off-screen drawer must never let focus or scrollIntoView shift the tree. */
+.ft-section-populated,.ft-workspace { overflow:clip; }
 .ft-map { grid-column:1; grid-row:2; position:relative; min-width:0; min-height:0; }
 .ft-subheader { grid-column:1 / -1; grid-row:1; z-index:2; padding:32px; background:#0f172a; border-bottom:1px solid #33415580; }
 .ft-toolbar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; pointer-events:auto; }
@@ -192,3 +194,55 @@
 .ft-avatar-crop-editor input[type=range] { display:block; width:100%; margin-top:10px; accent-color:#e0bf8b; }
 .ft-avatar-crop-editor .ft-edit-buttons { flex-wrap:wrap; }
 .ft-avatar-footer-buttons { flex-wrap:wrap; }
+
+/* Phones: the tree gets the whole screen. The heading is kept for screen readers only and the
+   controls float over the canvas. Keep the queries in sync with COMPACT_QUERY/SHEET_QUERY. */
+@media (max-width:639px), (max-height:500px) {
+  .ft-section-populated .ft-heading { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .ft-subheader { grid-row:2; grid-column:1; align-self:end; justify-self:center; z-index:3; padding:0 12px calc(12px + env(safe-area-inset-bottom)); background:none; border:0; pointer-events:none; }
+  .ft-subheader .ft-toolbar { flex-wrap:nowrap; gap:6px; padding:4px; border-radius:14px; border-color:#475569aa; background:#0f172ae6; box-shadow:0 8px 24px #0007; pointer-events:auto; }
+  .ft-subheader .ft-zoom-controls, .ft-subheader .ft-view-controls { gap:2px; border:0; background:none; }
+  .ft-subheader .ft-toolbar button { min-width:40px; width:40px; height:40px; padding:0; border:0; background:none; border-radius:10px; }
+  .ft-subheader .ft-view-controls button span { display:none; }
+  .ft-subheader .ft-toolbar output { min-width:40px; font-size:12px; color:#94a3b8; }
+  .ft-subheader .ft-view-controls { border-left:1px solid #334155; padding-left:4px; }
+  .ft-subheader .ft-toolbar .ft-details-toggle { display:flex; }
+  .ft-subheader .ft-details-toggle[aria-expanded="true"] { color:#e0bf8b; }
+  .ft-canvas-hint { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  /* Cards are drawn smaller on phones, so give their text more room. */
+  .ft-node { gap:10px; padding:12px; }
+  .ft-node.ft-node-selected { padding:11px; }
+  .ft-node .ft-avatar { width:44px; height:44px; font-size:15px; }
+  .ft-node strong { font-size:16px; }
+  .ft-node .ft-node-role, .ft-node .ft-photo-count { font-size:12px; }
+  .ft-node .ft-maiden-name { font-size:13px; }
+  /* Same drawer behaviour as tablets for phones held sideways. */
+  .ft-workspace { grid-template-columns:minmax(0,1fr); }
+  .ft-details { grid-column:1 / 2; position:absolute; z-index:5; top:0; right:0; bottom:0; width:min(340px,calc(100% - 48px)); transform:translateX(100%); visibility:hidden; box-shadow:-12px 0 32px #0004; padding:16px; }
+  .ft-details-open { transform:translateX(0); visibility:visible; }
+  .ft-details-close { position:absolute; top:10px; right:10px; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid var(--ft-border); border-radius:8px; color:#cbd5e1; background:#0f172a; }
+  /* Compact person summary: avatar beside the name instead of above it. */
+  .ft-detail-top { display:grid; grid-template-columns:52px minmax(0,1fr); column-gap:12px; row-gap:1px; align-items:center; margin-bottom:12px; padding-right:40px; }
+  .ft-detail-top > .ft-avatar-button { grid-row:1 / span 4; width:52px; height:52px; margin:0; border-radius:14px; align-self:start; }
+  .ft-detail-top > :not(.ft-avatar-button) { grid-column:2; }
+  .ft-detail-top h2 { font-size:18px; line-height:1.25; }
+  .ft-detail-top p { line-height:1.4; }
+  .ft-detail-top .ft-node-role { line-height:1.3; }
+  .ft-detail-section { padding-top:12px; margin-top:12px; }
+  .ft-detail-section h3 { margin-bottom:6px; }
+  .ft-action { margin-top:8px; padding:10px; }
+  .ft-person-edit-section { margin-bottom:12px; }
+  .ft-life-dates { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; margin-bottom:10px; }
+  .ft-detail-hint { display:none; }
+}
+@media (max-width:639px) and (min-height:501px) {
+  .ft-details { top:auto; left:0; right:0; bottom:0; width:auto; max-height:min(60%,560px); border-left:0; border-top:1px solid #475569; border-radius:18px 18px 0 0; transform:translateY(100%); transition:transform .22s ease, visibility .22s; padding:14px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow:0 -14px 40px #0008; }
+  .ft-details-open { transform:translateY(0); }
+}
+@media (max-width:639px) and (min-height:501px) and (prefers-reduced-motion:reduce) {
+  .ft-details { transition:none; }
+}
+@media (max-height:500px) {
+  /* Landscape phones: controls sit bottom-left so an open drawer on the right does not cover them. */
+  .ft-subheader { justify-self:start; }
+}

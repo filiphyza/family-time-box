@@ -536,27 +536,27 @@ const App: React.FC = () => {
   return (
     <div className={`${viewMode === 'tree' ? 'flex h-dvh flex-col overflow-hidden' : 'min-h-screen'} bg-slate-900 text-slate-200 font-sans`}>
       {/* App header */}
-      <header className="sticky top-0 z-30 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+      <header className="app-header sticky top-0 z-30 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
         <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 py-3 lg:h-16 lg:flex-nowrap lg:py-0">
+          <div className="app-header-row flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 py-3 lg:h-16 lg:flex-nowrap lg:py-0">
             <div className="flex shrink-0 items-center gap-2 ftb-brand" data-brand="family-time-box" onClick={() => setViewMode('gallery')}>
               <img src={`${import.meta.env.BASE_URL}brand/family-time-box.svg`} alt="" aria-hidden="true" className="ftb-brand-symbol cursor-pointer" />
               <span className="ftb-brand-wordmark cursor-pointer">{t.appTitle}</span>
             </div>
             
-            <nav className="order-last flex w-full items-center justify-end gap-2 lg:order-none lg:ml-auto lg:w-auto" aria-label={t.appTitle}>
+            <nav className="app-nav order-last flex w-full items-center justify-end gap-2 lg:order-none lg:ml-auto lg:w-auto" aria-label={t.appTitle}>
               {([
                 { mode: 'gallery', label: t.gallery, Icon: LayoutGrid },
                 { mode: 'tree', label: t.familyTree, Icon: GitBranch },
               ] as const).map(({ mode, label, Icon }) => (
-                <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-current={viewMode === mode ? 'page' : undefined}
+                <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-current={viewMode === mode ? 'page' : undefined} aria-label={label} title={label}
                   className={`flex items-center gap-2 rounded-lg border border-transparent px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sepia-400 ${viewMode === mode ? 'bg-slate-700 text-white hover:bg-slate-600' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                  <Icon size={16} aria-hidden="true" />{label}
+                  <Icon size={16} aria-hidden="true" /><span className="app-nav-label">{label}</span>
                 </button>
               ))}
             </nav>
 
-            <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-4 lg:ml-0">
+            <div className="app-header-actions ml-auto flex shrink-0 items-center gap-1 sm:gap-4 lg:ml-0">
                {(isLoading || uploadProgress) && <RefreshCw className="animate-spin text-sepia-400" size={20} />}
                
                <button 
@@ -709,7 +709,7 @@ const App: React.FC = () => {
               </div>
             </div>
             {/* Filter Bar */}
-            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm flex flex-col md:flex-row gap-4 items-center justify-between sticky top-[7.5rem] lg:top-20 z-20 shadow-xl">
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm flex flex-col md:flex-row gap-4 items-center justify-between app-gallery-filters sticky top-[7.5rem] lg:top-20 z-20 shadow-xl">
               <div className="relative w-full md:w-96">
                 <Search className="absolute left-3 top-2.5 text-slate-500" size={18} />
                 <input 
