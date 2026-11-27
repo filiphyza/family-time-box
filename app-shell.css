@@ -1,7 +1,7 @@
 /* Phone layout for the app shell. "Compact" covers portrait phones and touch devices held in
    landscape (short viewports), where every pixel of vertical space goes to content.
    Keep the query in sync with COMPACT_QUERY in components/FamilyTree.tsx. */
-@media (max-width: 639px), (max-height: 500px) and (pointer: coarse) {
+@media (max-width: 639px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .app-header .app-header-row { min-height: 0; height: auto; flex-wrap: nowrap; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
   .app-header [data-brand="family-time-box"] .ftb-brand-symbol { width: 32px; height: 32px; }
   .app-header [data-brand="family-time-box"] .ftb-brand-wordmark { display: none; }
@@ -9,6 +9,8 @@
   .app-header .app-nav button { justify-content: center; min-width: 44px; min-height: 40px; padding: 0 12px; border-radius: 10px; }
   .app-header .app-nav-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .app-header .app-header-actions { gap: 0; margin-left: auto; }
+  /* Random photo and app install stay on larger screens; the header keeps only the essentials. */
+  .app-header .app-shuffle, .app-header .app-install { display: none !important; }
   .app-header .app-header-actions > button:not(.hidden) { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; }
   /* The tall filter bar would cover much of a small screen if it followed the scroll. */
   .app-gallery-filters.app-gallery-filters { position: static; }
@@ -17,7 +19,7 @@
   .app-gallery-filters select { width: 100%; min-width: 0; }
 }
 /* Phones held sideways: a thinner header leaves more height for the tree. */
-@media (max-height: 500px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
   .app-header .app-header-row { padding-top: 0; padding-bottom: 0; }
   .app-header .app-nav button { min-height: 36px; }
   .app-header .app-header-actions > button:not(.hidden) { min-height: 40px; }

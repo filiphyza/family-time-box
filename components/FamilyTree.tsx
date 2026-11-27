@@ -24,11 +24,13 @@ interface Props {
 const clampScale = (scale: number, minimum = 0.01) => Math.min(2, Math.max(minimum, scale));
 // Phones (portrait, or landscape with little height) get floating controls and a smaller start zoom.
 // Keep these queries in sync with FamilyTree.css.
-const COMPACT_QUERY = '(max-width: 639px), (max-height: 500px) and (pointer: coarse)';
+// Orientation (not just height) decides sheet vs. landscape, so an on-screen keyboard that
+// shortens a portrait phone's viewport does not switch layouts mid-typing.
+const COMPACT_QUERY = '(max-width: 639px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)';
 // Portrait phones show person details as a bottom sheet; wider screens use a side drawer or column.
-const SHEET_QUERY = '(max-width: 639px) and (min-height: 501px)';
-const LANDSCAPE_QUERY = '(max-height: 500px) and (pointer: coarse)';
-const DRAWER_QUERY = '(max-width: 850px), (max-height: 500px) and (pointer: coarse)';
+const SHEET_QUERY = '(max-width: 639px) and (orientation: portrait)';
+const LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 500px) and (pointer: coarse)';
+const DRAWER_QUERY = '(max-width: 850px), (orientation: landscape) and (max-height: 500px) and (pointer: coarse)';
 const matches = (query: string) => typeof window !== 'undefined' && window.matchMedia(query).matches;
 const homeScale = () => matches(COMPACT_QUERY) ? 0.7 : 0.9;
 
@@ -50,6 +52,10 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
   detailsOpenRef.current = detailsOpen;
   const tapStart = useRef<{ x: number; y: number } | null>(null);
   const handleStart = useRef<number | null>(null);
+  const handleDragged = useRef(false);
+  // A press that starts on a card pans the tree once the finger moves; the card's click is then skipped.
+  const cardPress = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const cardDragged = useRef(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const measuredSize = useRef({ width: 0, height: 0 });
   const measureCanvas = () => {
@@ -168,6 +174,8 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
   const fitTree = () => {
     const { minX, minY, maxX, maxY } = layout.bounds;
     const viewport = measureCanvas();
+    // Where details cover the tree, Fit puts them away so the whole tree stays readable.
+    if (detailsOpenRef.current && matches(DRAWER_QUERY)) { detailsOpenRef.current = false; setDetailsOpen(false); }
     const compact = matches(COMPACT_QUERY);
     // Fit into the part of the canvas not covered by open details or the floating phone controls.
     const area = detailsOpenRef.current || compact ? visibleCanvas(viewport) : { left: 0, top: 0, right: viewport.width, bottom: viewport.height };
@@ -265,6 +273,7 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
     : people.get(relation?.personId)?.name;
   const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     pointers.current.delete(event.pointerId);
+    if (cardPress.current?.pointerId === event.pointerId) cardPress.current = null;
     if (!pointers.current.size) setDragging(false);
   };
   // Closing with the close button or Escape returns focus to the person's card.
@@ -278,19 +287,24 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
     if (!panel) return;
     panel.style.transition = offset === null ? '' : 'none';
     panel.style.transform = offset === null ? '' : `translateY(${offset}px)`;
+    const workspace = panel.parentElement;
+    if (workspace) workspace.style.setProperty('--ft-sheet-drag', offset === null ? '0px' : `${offset}px`);
+    const controls = workspace?.querySelector<HTMLElement>('.ft-subheader');
+    if (controls) controls.style.transition = offset === null ? '' : 'none';
   };
   const moveHandle = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (handleStart.current !== null) dragSheet(Math.max(0, event.clientY - handleStart.current));
+    if (handleStart.current !== null) dragSheet(Math.max(-24, event.clientY - handleStart.current));
   };
   const endHandle = (event: React.PointerEvent<HTMLButtonElement>) => {
     const start = handleStart.current;
     handleStart.current = null;
     dragSheet(null);
     if (start === null) return;
+    // Taps arrive as a click (which also serves keyboards and screen readers); only real swipes act here.
     const distance = event.clientY - start;
+    handleDragged.current = Math.abs(distance) > 50;
     if (distance > 50) { if (sheetExpanded) setSheetExpanded(false); else closeDetails(); }
     else if (distance < -50) setSheetExpanded(true);
-    else setSheetExpanded(current => !current);
   };
   // On phones and tablets the details cover the tree; a tap on empty canvas puts them away.
   const tapCanvas = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -298,7 +312,8 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
     tapStart.current = null;
     if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) < 6 && detailsOpenRef.current && matches(DRAWER_QUERY)) setDetailsOpen(false);
   };
-  const goTo = (id: string) => { setSelectedId(id); centerPerson(id); };
+  // On phones, jumping to a relative zooms back in to a readable size if the tree was zoomed far out.
+  const goTo = (id: string) => { setSelectedId(id); centerPerson(id, matches(COMPACT_QUERY) ? Math.max(viewRef.current.scale, homeScale()) : viewRef.current.scale); };
   const personLink = (id: string) => <button key={id} type="button" className="ft-person-link" aria-label={`${language === 'sk' ? 'Prejsť na' : 'Go to'} ${people.get(id)?.name}`} onClick={() => goTo(id)}>{people.get(id)?.name}</button>;
 
   const heading = (
@@ -343,7 +358,17 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
           <div className="ft-map">
             <div ref={canvas} className={`ft-canvas ${dragging ? 'ft-dragging' : ''}`} role="region" tabIndex={0} aria-label={t.treeCanvas} aria-describedby="tree-canvas-hint" data-testid="family-tree-canvas" data-scale={view.scale}
               onPointerDown={event => {
-                if ((event.target as Element).closest('button') || event.button !== 0) return;
+                if (event.button !== 0) return;
+                const card = (event.target as Element).closest('button');
+                if (card && !card.classList.contains('ft-node')) return;
+                if (card) {
+                  // Leave the card its tap; start panning only once the finger moves (see onPointerMove).
+                  cardDragged.current = false;
+                  if (!pointers.current.size) cardPress.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+                  pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+                  tapStart.current = null;
+                  return;
+                }
                 event.preventDefault();
                 event.currentTarget.focus({ preventScroll: true });
                 event.currentTarget.setPointerCapture(event.pointerId);
@@ -354,6 +379,14 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
               onPointerMove={event => {
                 const previous = pointers.current.get(event.pointerId);
                 if (!previous) return;
+                const press = cardPress.current;
+                if (press?.pointerId === event.pointerId) {
+                  if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < 6) return;
+                  cardPress.current = null;
+                  cardDragged.current = true;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  setDragging(true);
+                }
                 const before = [...pointers.current.values()];
                 pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
                 const after = [...pointers.current.values()];
@@ -399,7 +432,7 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
                   const accessibleDescription = [relationshipLabels.get(node.id), maidenName ? `${t.treeMaidenName}: ${maidenName}` : ''].filter(Boolean).join(' · ');
                   const count = photoCounts.get(personNameKey(person.name)) || 0;
                   return <button key={node.id} type="button" className={`ft-node ${selected?.id === node.id ? 'ft-node-selected' : ''} ${isRoot ? 'ft-node-root' : ''}`} aria-label={`${t.treeSelect} ${person.name}`} aria-pressed={selected?.id === node.id} aria-description={accessibleDescription} disabled={saving} data-person-id={node.id}
-                    onClick={() => { setSelectedId(node.id); setDetailsOpen(true); revealSelected(node.id); }} onFocus={() => { if (document.activeElement?.matches(':focus-visible')) centerPerson(node.id); }}
+                    onClick={() => { if (cardDragged.current) { cardDragged.current = false; return; } setSelectedId(node.id); setDetailsOpen(true); revealSelected(node.id); }} onFocus={() => { if (document.activeElement?.matches(':focus-visible')) centerPerson(node.id); }}
                     style={{ left: node.x, top: node.y, width: TREE_NODE_WIDTH, height: TREE_NODE_HEIGHT }}>
                     <span className="ft-avatar"><PersonAvatar person={person} photo={avatarPhotoFor(person)} /></span>
                     <span className="ft-node-content"><span className="ft-node-role" title={relationshipLabels.get(node.id)}>{relationshipLabels.get(node.id)}</span><strong>{person.name}</strong>{maidenName && <span className="ft-maiden-name" aria-label={`${t.treeMaidenName}: ${maidenName}`} title={`${t.treeMaidenName}: ${maidenName}`}>({maidenName})</span>}<span className="ft-photo-count">{count} {t.treePhotos}</span></span>
@@ -414,7 +447,7 @@ export const FamilyTree: React.FC<Props> = ({ tree, knownPeople, photos, languag
             <button type="button" className="ft-sheet-handle" aria-label={sheetExpanded ? t.treeShrinkDetails : t.treeExpandDetails} aria-expanded={sheetExpanded} aria-controls="family-tree-details"
               onPointerDown={event => { handleStart.current = event.clientY; event.currentTarget.setPointerCapture(event.pointerId); }}
               onPointerMove={moveHandle} onPointerUp={endHandle} onPointerCancel={() => { handleStart.current = null; dragSheet(null); }}
-              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSheetExpanded(current => !current); } }}><span aria-hidden="true" /></button>
+              onClick={() => { if (handleDragged.current) handleDragged.current = false; else setSheetExpanded(current => !current); }}><span aria-hidden="true" /></button>
             <button type="button" className="ft-details-close" aria-label={t.close} onClick={closeDetails}><X size={20} /></button>
             <div className="ft-detail-top">
               <button type="button" className="ft-detail-icon ft-avatar-button" disabled={saving} aria-label={t.treeChangeAvatar.replace('{name}', selected.name)} title={t.treeChangeAvatar.replace('{name}', selected.name)} onClick={() => setAvatarPersonId(selected.id)}>

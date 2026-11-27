@@ -577,7 +577,7 @@ const App: React.FC = () => {
                )}
                <button 
                 onClick={shuffleGallery}
-                className="p-2 text-slate-400 hover:text-sepia-400 transition-colors hidden sm:block"
+                className="app-shuffle p-2 text-slate-400 hover:text-sepia-400 transition-colors hidden sm:block"
                 title="View Random Photo"
                >
                  <Shuffle size={20} />
@@ -588,7 +588,7 @@ const App: React.FC = () => {
                  <button 
                    onClick={handleInstallClick}
                    disabled={!deferredPrompt}
-                   className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                   className={`app-install hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                        deferredPrompt 
                        ? 'bg-slate-800 hover:bg-slate-700 text-sepia-400 border-sepia-900 cursor-pointer' 
                        : 'bg-slate-800/50 text-slate-600 border-slate-800 cursor-not-allowed opacity-50'
